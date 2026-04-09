@@ -1,0 +1,54 @@
+project_root: .
+
+# --- File System & Model Loading ---
+data_path: temp-data/feature-data-split0.parquet
+model_path: "models/ewe1-slim-small.onnx"
+metadata_config_path: configs/metadata_configs/eth-sequences-filtered.json
+read_format: parquet
+write_format: parquet
+
+# --- Schema & Columns ---
+input_columns: ["correspondent_address", "final_counterparty", "related_contract", "hour_utc", "day_of_week", "day_of_month", "month", "tx_cost_eth", "is_sender", "is_successful", "input_len", "method_id", "is_contract_call", "tx_type", "is_self_tx", "is_early_block", "s_age_days", "s_time_since_last", "s_time_since_send", "s_nonce", "s_fail_rate", "s_io_ratio", "s_freq_std_dev", "s_contract_count", "s_session_depth", "s_is_new_session", "s_inter_arrival_ratio", "s_lifetime_erc20", "token_value_log", "input_entropy", "s_total_interactions_log"]
+target_columns: ["correspondent_address", "final_counterparty", "related_contract", "hour_utc", "day_of_week", "day_of_month", "month", "tx_cost_eth", "is_sender", "is_successful", "input_len", "method_id", "is_contract_call", "tx_type", "is_self_tx", "is_early_block",  "s_age_days", "s_time_since_last", "s_time_since_send", "s_nonce", "s_fail_rate", "s_io_ratio", "s_freq_std_dev", "s_contract_count", "s_session_depth", "s_is_new_session", "s_inter_arrival_ratio", "s_lifetime_erc20", "token_value_log", "input_entropy", "s_total_interactions_log"]
+
+target_column_types:
+  correspondent_address: categorical
+  final_counterparty: categorical
+  related_contract: categorical
+  hour_utc: categorical
+  day_of_week: categorical
+  day_of_month: categorical
+  month: categorical
+  tx_cost_eth: real
+  is_sender: categorical
+  is_successful: categorical
+  input_len: real
+  method_id: categorical
+  is_contract_call: categorical
+  tx_type: categorical
+  is_self_tx: categorical
+  is_early_block: categorical
+  s_age_days: real
+  s_time_since_last: real
+  s_time_since_send: real
+  s_nonce: real
+  s_fail_rate: real
+  s_io_ratio: real
+  s_freq_std_dev: real
+  s_contract_count: real
+  s_session_depth: real
+  s_is_new_session: categorical
+  s_inter_arrival_ratio: real
+  s_lifetime_erc20: real
+  token_value_log: real
+  input_entropy: real
+  s_total_interactions_log: real
+
+# --- Inference Logic & Modes ---
+model_type: embedding
+seq_length: 64
+inference_batch_size: 10
+map_to_id: true
+autoregression: false
+# --- System & Distributed ---
+device: cuda

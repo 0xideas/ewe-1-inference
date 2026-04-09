@@ -1,0 +1,8 @@
+data/*
+!data/empty
+outputs/*
+models/*
+!models/empty
+embeddings/*
+__pycache__
+.DS_Store
