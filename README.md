@@ -24,7 +24,7 @@ python generate_embedding.py [MODEL_NAME]
 
 ## Model Variants 🐑
 
-The EWE-1 family includes three model sizes. The repo is configured by default for the **Small** variant.
+The EWE-1 family includes three model sizes.
 
 | Model | Embedding Dimension | Attention Layers |
 | :--- | :--- | :--- |
