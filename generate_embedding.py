@@ -17,6 +17,8 @@ if __name__ == "__main__":
     dfs = []
     sequence_id_to_file = {}
     for root, dirs, files in os.walk("data"):
+        if dirs:
+            raise ValueError(f"Subdirectories are not allowed in the data/ folder. Found: {dirs}")
         for sequence_id, file in enumerate(sorted(list(files))):
             if file.endswith(".parquet"):
                 df = pd.read_parquet(os.path.join(root, file))
@@ -47,5 +49,5 @@ if __name__ == "__main__":
     os.makedirs("embeddings", exist_ok=True)
 
     for sequence_id, sequence_group in embeddings.groupby("sequenceId"):
-        file_path = f"embeddings/{sequence_id_to_file[sequence_id]}-embedding.parquet"
+        file_path = f"embeddings/{sequence_id_to_file[sequence_id]}.parquet"
         sequence_group.to_parquet(file_path)
