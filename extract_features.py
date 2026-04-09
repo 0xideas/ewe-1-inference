@@ -33,14 +33,19 @@ TOKEN_DECIMALS = {
     "0x6982508145454ce325ddbe47a25d4ec3d2311933": 18,
     "0xcf0c122c6b73ff809c693db761e7baebe62b6a2e": 9,
     "0x2260fac5e5542a773aa44fbcfedf7c193bc2c599": 8,
-    "0xa0b73e1ff0b80914ab6fe0444e65848c4c34450b": 8
+    "0xa0b73e1ff0b80914ab6fe0444e65848c4c34450b": 8,
 }
 
-def extract_features(df: pd.DataFrame, target_address: str, sequence_id: int) -> pd.DataFrame:
-    df = df.sort_values(by=['block_timestamp', 'transaction_index']).reset_index(drop=True)
+
+def extract_features(
+    df: pd.DataFrame, target_address: str, sequence_id: int
+) -> pd.DataFrame:
+    df = df.sort_values(by=["block_timestamp", "transaction_index"]).reset_index(
+        drop=True
+    )
     print(f"{target_address = }")
     target_address = target_address.lower()
-    
+
     # --- Internal State Variables ---
     first_seen = 0
     last_seen_generic = 0
@@ -55,29 +60,61 @@ def extract_features(df: pd.DataFrame, target_address: str, sequence_id: int) ->
     session_tx_count = 0
     lifetime_erc20 = 0
     prev_gap = 0
-    
+
     SESSION_GAP_SECONDS = 900
-    
+
     # Expected output columns
     result_keys = [
-        "correspondent_address", "final_counterparty", "related_contract", "hour_utc", 
-        "day_of_week", "day_of_month", "month", "tx_cost_eth", "is_sender", "is_successful", 
-        "input_len", "method_id", "is_contract_call", "tx_type", "is_self_tx", "is_early_block", 
-        "s_age_days", "s_time_since_last", "s_time_since_send", "s_nonce", "s_fail_rate", 
-        "s_io_ratio", "s_freq_std_dev", "s_contract_count", "s_session_depth", "s_is_new_session", 
-        "s_inter_arrival_ratio", "s_lifetime_erc20", "token_value_log", "input_entropy", 
-        "s_total_interactions_log"
+        "correspondent_address",
+        "final_counterparty",
+        "related_contract",
+        "hour_utc",
+        "day_of_week",
+        "day_of_month",
+        "month",
+        "tx_cost_eth",
+        "is_sender",
+        "is_successful",
+        "input_len",
+        "method_id",
+        "is_contract_call",
+        "tx_type",
+        "is_self_tx",
+        "is_early_block",
+        "s_age_days",
+        "s_time_since_last",
+        "s_time_since_send",
+        "s_nonce",
+        "s_fail_rate",
+        "s_io_ratio",
+        "s_freq_std_dev",
+        "s_contract_count",
+        "s_session_depth",
+        "s_is_new_session",
+        "s_inter_arrival_ratio",
+        "s_lifetime_erc20",
+        "token_value_log",
+        "input_entropy",
+        "s_total_interactions_log",
     ]
     results = {key: [] for key in result_keys}
 
     def extract_state_features(is_sender_role: bool, input_nonce: int, ts: int):
         """Calculates features from current state BEFORE applying DB updates."""
-        is_new = (first_seen == 0)
-        time_since_send = max(0.0, float(ts - last_send_ts)) if not is_new and last_send_ts > 0 else 0.0
-        time_since_generic = max(0.0, float(ts - last_seen_generic)) if not is_new else 0.0
-        
-        is_new_session = is_sender_role and (is_new or time_since_send > SESSION_GAP_SECONDS)
-        
+        is_new = first_seen == 0
+        time_since_send = (
+            max(0.0, float(ts - last_send_ts))
+            if not is_new and last_send_ts > 0
+            else 0.0
+        )
+        time_since_generic = (
+            max(0.0, float(ts - last_seen_generic)) if not is_new else 0.0
+        )
+
+        is_new_session = is_sender_role and (
+            is_new or time_since_send > SESSION_GAP_SECONDS
+        )
+
         interval_count = max(0, out_count - 1)
         freq_std_dev = 0.0
         if interval_count > 0:
@@ -85,18 +122,18 @@ def extract_features(df: pd.DataFrame, target_address: str, sequence_id: int) ->
             mean_sq = sum_sq_diff / interval_count
             var = max(0.0, mean_sq - mean**2)
             freq_std_dev = math.sqrt(var)
-            
+
         current_session_depth = 0
         if is_sender_role:
             current_session_depth = 1 if is_new_session else session_tx_count + 1
-            
+
         current_gap_raw = ts - last_seen_generic if last_seen_generic > 0 else 0
         acceleration = (current_gap_raw / prev_gap) if prev_gap > 0 else 1.0
-        
+
         total_ops = in_count + out_count
         io_ratio = (in_count / total_ops) if total_ops > 0 else 0.5
         current_nonce = max(db_nonce, input_nonce) if is_sender_role else db_nonce
-        
+
         return {
             "s_age_days": 0.0 if is_new else (ts - first_seen) / 86400.0,
             "s_time_since_last": time_since_generic,
@@ -110,19 +147,32 @@ def extract_features(df: pd.DataFrame, target_address: str, sequence_id: int) ->
             "s_is_new_session": is_new_session,
             "s_inter_arrival_ratio": acceleration,
             "s_lifetime_erc20": lifetime_erc20,
-            "s_total_interactions_log": math.log(total_ops + 1.0)
+            "s_total_interactions_log": math.log(total_ops + 1.0),
         }
 
-    def apply_state_update(is_sender_role: bool, tx_failed: bool, is_contract_creation: bool, is_erc_activity: bool, input_nonce: int, ts: int):
+    def apply_state_update(
+        is_sender_role: bool,
+        tx_failed: bool,
+        is_contract_creation: bool,
+        is_erc_activity: bool,
+        input_nonce: int,
+        ts: int,
+    ):
         """Mutates global state exactly like RocksDB put()."""
-        nonlocal first_seen, last_seen_generic, db_nonce, fail_count, in_count, out_count
+        nonlocal \
+            first_seen, \
+            last_seen_generic, \
+            db_nonce, \
+            fail_count, \
+            in_count, \
+            out_count
         nonlocal sum_sq_diff, sum_diff, contract_count, last_send_ts, session_tx_count
         nonlocal lifetime_erc20, prev_gap
-        
-        is_new = (first_seen == 0)
+
+        is_new = first_seen == 0
         new_first = ts if is_new else first_seen
         new_last_seen_generic = ts
-        
+
         new_nonce = db_nonce
         new_fail = fail_count
         new_in = in_count
@@ -134,26 +184,31 @@ def extract_features(df: pd.DataFrame, target_address: str, sequence_id: int) ->
         new_sess_depth = session_tx_count
         new_erc20 = lifetime_erc20
         new_prev_gap = prev_gap
-        
+
         current_gap_raw = ts - last_seen_generic if last_seen_generic > 0 else 0
         if last_seen_generic > 0:
             new_prev_gap = current_gap_raw
-            
+
         if is_sender_role:
             new_nonce = input_nonce if input_nonce > 0 else new_nonce + 1
             new_out += 1
-            if tx_failed: new_fail += 1
-            if is_contract_creation: new_contract_count += 1
-            if is_erc_activity: new_erc20 += 1
-            
+            if tx_failed:
+                new_fail += 1
+            if is_contract_creation:
+                new_contract_count += 1
+            if is_erc_activity:
+                new_erc20 += 1
+
             if last_send_ts > 0:
                 diff = ts - last_send_ts if ts > last_send_ts else 0
                 new_sum_diff += diff
-                new_sum_sq += diff ** 2
-                
+                new_sum_sq += diff**2
+
             new_last_send_ts = ts
-            
-            time_since_send_pre = (ts - last_send_ts) if not is_new and last_send_ts > 0 else 0.0
+
+            time_since_send_pre = (
+                (ts - last_send_ts) if not is_new and last_send_ts > 0 else 0.0
+            )
             is_new_sess = is_new or time_since_send_pre > SESSION_GAP_SECONDS
             if is_new_sess:
                 new_sess_depth = 1
@@ -161,7 +216,7 @@ def extract_features(df: pd.DataFrame, target_address: str, sequence_id: int) ->
                 new_sess_depth += 1
         else:
             new_in += 1
-            
+
         first_seen = new_first
         last_seen_generic = new_last_seen_generic
         db_nonce = new_nonce
@@ -178,36 +233,39 @@ def extract_features(df: pd.DataFrame, target_address: str, sequence_id: int) ->
 
     # --- Processing Loop ---
     for i, row in df.iterrows():
-        ts = int(row['block_timestamp'].timestamp())
-        tx_index = int(row['transaction_index'])
-        input_nonce = int(row.get('nonce', 0))
-        
-        from_addr = str(row['from_address']).lower()
-        to_raw = str(row.get('to_address', '')).lower()
-        if to_raw in ("nan", "none"): to_raw = ""
-        
+        ts = int(row["block_timestamp"].timestamp())
+        tx_index = int(row["transaction_index"])
+        input_nonce = int(row.get("nonce", 0))
+
+        from_addr = str(row["from_address"]).lower()
+        to_raw = str(row.get("to_address", "")).lower()
+        if to_raw in ("nan", "none"):
+            to_raw = ""
+
         # Determine strict failure status matching Pre-Byzantium fallback
-        status = row.get('receipt_status')
-        gas_limit = int(row.get('gas', 0))
-        gas_used = int(row.get('receipt_gas_used', 0))
-        
+        status = row.get("receipt_status")
+        gas_limit = int(row.get("gas", 0))
+        gas_used = int(row.get("receipt_gas_used", 0))
+
         if pd.isna(status) or status is None or str(status).lower() == "nan":
-            tx_failed = (gas_limit > 0 and gas_used >= gas_limit)
+            tx_failed = gas_limit > 0 and gas_used >= gas_limit
         else:
-            tx_failed = (float(status) == 0.0)
+            tx_failed = float(status) == 0.0
         is_successful = not tx_failed
 
         # Safe Input Bytes Parsing
-        input_hex = str(row.get('input', '0x')).lower()
-        if input_hex in ("nan", "none"): input_hex = "0x"
-        if input_hex.startswith("0x"): input_hex = input_hex[2:]
+        input_hex = str(row.get("input", "0x")).lower()
+        if input_hex in ("nan", "none"):
+            input_hex = "0x"
+        if input_hex.startswith("0x"):
+            input_hex = input_hex[2:]
         try:
             input_bytes = bytes.fromhex(input_hex)
         except ValueError:
             input_bytes = b""
-            
+
         input_len = len(input_bytes)
-        
+
         # Determine Method & Tx Types
         method_id = 0
         method_str = ""
@@ -219,32 +277,32 @@ def extract_features(df: pd.DataFrame, target_address: str, sequence_id: int) ->
                 pass
 
         is_contract_creation = len(to_raw) < 5
-        ca_raw = str(row.get('receipt_contract_address', '')).lower()
+        ca_raw = str(row.get("receipt_contract_address", "")).lower()
         ca = ca_raw if ca_raw not in ("nan", "none", "") else ""
-        
-        is_transfer = (method_str == "a9059cbb")
-        is_transfer_from = (method_str == "23b872dd")
-        is_approval = (method_str == "095ea7b3")
+
+        is_transfer = method_str == "a9059cbb"
+        is_transfer_from = method_str == "23b872dd"
+        is_approval = method_str == "095ea7b3"
         is_erc_activity = is_transfer or is_transfer_from or is_approval
-        
+
         # Byte-level ERC20 Extraction
         is_erc20_transfer = False
         effective_to = to_raw
         token_val_log = 0.0
-        
+
         if input_len >= 68 and is_transfer:
             effective_to = "0x" + input_bytes[16:36].hex()
             is_erc20_transfer = True
-            val_u128 = int.from_bytes(input_bytes[52:68], byteorder='big')
+            val_u128 = int.from_bytes(input_bytes[52:68], byteorder="big")
             decimals = TOKEN_DECIMALS.get(to_raw, 18)
-            token_val_log = math.log((val_u128 / (10 ** decimals)) + 1.0)
-                
+            token_val_log = math.log((val_u128 / (10**decimals)) + 1.0)
+
         elif input_len >= 100 and is_transfer_from:
             effective_to = "0x" + input_bytes[48:68].hex()
             is_erc20_transfer = True
-            val_u128 = int.from_bytes(input_bytes[84:100], byteorder='big')
+            val_u128 = int.from_bytes(input_bytes[84:100], byteorder="big")
             decimals = TOKEN_DECIMALS.get(to_raw, 18)
-            token_val_log = math.log((val_u128 / (10 ** decimals)) + 1.0)
+            token_val_log = math.log((val_u128 / (10**decimals)) + 1.0)
 
         # Entropy Calculation
         entropy = 0.0
@@ -252,7 +310,8 @@ def extract_features(df: pd.DataFrame, target_address: str, sequence_id: int) ->
             data = input_bytes[4:]
             if data:
                 counts = {}
-                for b in data: counts[b] = counts.get(b, 0) + 1
+                for b in data:
+                    counts[b] = counts.get(b, 0) + 1
                 length = float(len(data))
                 for count in counts.values():
                     p = count / length
@@ -261,7 +320,7 @@ def extract_features(df: pd.DataFrame, target_address: str, sequence_id: int) ->
         # Output Strings Format matching Rust
         final_counterparty = effective_to if is_erc20_transfer else "None"
         is_self_tx = not is_contract_creation and (from_addr == to_raw)
-        
+
         if is_contract_creation:
             related_contract = ca if ca else "None"
             correspondent_address = "None"
@@ -273,16 +332,20 @@ def extract_features(df: pd.DataFrame, target_address: str, sequence_id: int) ->
             correspondent_address = to_raw if to_raw else "None"
 
         # --- Roles & State Evaluation ---
-        is_target_sender = (from_addr == target_address)
+        is_target_sender = from_addr == target_address
         receiver_addr = ca if is_contract_creation else effective_to
-        is_target_receiver = (receiver_addr == target_address)
+        is_target_receiver = receiver_addr == target_address
 
         # Generate features exactly ONCE per transaction from Target's perspective
-        feat = extract_state_features(is_sender_role=is_target_sender, input_nonce=input_nonce, ts=ts)
-        is_nonce_replay = is_target_sender and (first_seen > 0) and (input_nonce <= db_nonce)
-        
-        dt = pd.to_datetime(ts, unit='s', utc=True)
-        tx_cost_eth = (gas_used * int(row.get('gas_price', 0))) / 1e18
+        feat = extract_state_features(
+            is_sender_role=is_target_sender, input_nonce=input_nonce, ts=ts
+        )
+        is_nonce_replay = (
+            is_target_sender and (first_seen > 0) and (input_nonce <= db_nonce)
+        )
+
+        dt = pd.to_datetime(ts, unit="s", utc=True)
+        tx_cost_eth = (gas_used * int(row.get("gas_price", 0))) / 1e18
 
         # --- Populate Row Data ---
         results["correspondent_address"].append(correspondent_address)
@@ -298,31 +361,81 @@ def extract_features(df: pd.DataFrame, target_address: str, sequence_id: int) ->
         results["input_len"].append(input_len)
         results["method_id"].append(method_id)
         results["is_contract_call"].append(input_len >= 4)
-        results["tx_type"].append(int(row.get('transaction_type', 0)))
+        results["tx_type"].append(int(row.get("transaction_type", 0)))
         results["is_self_tx"].append(is_self_tx)
         results["is_early_block"].append(tx_index <= 2)
         results["token_value_log"].append(token_val_log)
         results["input_entropy"].append(entropy)
-        
+
         for k, v in feat.items():
             results[k].append(v)
 
         # --- Apply Database Mutations Sequence ---
         if is_target_sender:
             if not is_nonce_replay:
-                apply_state_update(True, tx_failed, is_contract_creation, is_erc_activity, input_nonce, ts)
-            
+                apply_state_update(
+                    True,
+                    tx_failed,
+                    is_contract_creation,
+                    is_erc_activity,
+                    input_nonce,
+                    ts,
+                )
+
             # Double write logic for self-transactions
             if not tx_failed and receiver_addr != "" and is_target_receiver:
-                apply_state_update(False, tx_failed, is_contract_creation, is_erc_activity, input_nonce, ts)
+                apply_state_update(
+                    False,
+                    tx_failed,
+                    is_contract_creation,
+                    is_erc_activity,
+                    input_nonce,
+                    ts,
+                )
         else:
             if not tx_failed and is_target_receiver:
-                apply_state_update(False, tx_failed, is_contract_creation, is_erc_activity, input_nonce, ts)
+                apply_state_update(
+                    False,
+                    tx_failed,
+                    is_contract_creation,
+                    is_erc_activity,
+                    input_nonce,
+                    ts,
+                )
 
     for key, values in results.items():
         df[key] = values
 
     df["sequenceId"] = np.repeat(sequence_id, df.shape[0])
     df["itemPosition"] = np.arange(df.shape[0])
-        
-    return df[["sequenceId", "itemPosition"] + [c for c in df.columns if c not in ["sequenceId", "itemPosition"]]]
+
+    string_cols = [
+        "correspondent_address",
+        "final_counterparty",
+        "related_contract",
+        "method_id",
+    ]
+    for col in string_cols:
+        if col in df.columns:
+            df[col] = df[col].fillna("None").astype(str)
+
+    # 2. Cast booleans to int (Sequifier/Polars handles Int64 better than Bool for mapping)
+    bool_cols = [
+        "is_sender",
+        "is_successful",
+        "is_contract_call",
+        "is_self_tx",
+        "is_early_block",
+        "s_is_new_session",
+    ]
+    for col in bool_cols:
+        if col in df.columns:
+            df[col] = df[col].astype(int)
+
+    # 3. Existing fix for timestamp
+    df["block_timestamp"] = df["block_timestamp"].astype("int64") // 10**6
+
+    return df[
+        ["sequenceId", "itemPosition"]
+        + [c for c in df.columns if c not in ["sequenceId", "itemPosition"]]
+    ]

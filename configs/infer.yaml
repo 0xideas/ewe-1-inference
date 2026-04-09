@@ -1,7 +1,7 @@
 project_root: .
 
 # --- File System & Model Loading ---
-data_path: temp-data/feature-data-split0.parquet
+data_path: temp-data/eth-sequences-filtered-split0.parquet
 model_path: "models/ewe1-slim-small.onnx"
 metadata_config_path: configs/metadata_configs/eth-sequences-filtered.json
 read_format: parquet
