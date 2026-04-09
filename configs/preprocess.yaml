@@ -1,5 +1,5 @@
 project_root: .
-data_path: temp-data/feature-data.parquet
+data_path: temp-data/eth-sequences-filtered.parquet
 read_format: parquet
 write_format: parquet
 selected_columns: ["correspondent_address", "final_counterparty", "related_contract", "hour_utc", "day_of_week", "day_of_month", "month", "tx_cost_eth", "is_sender", "is_successful", "input_len", "method_id", "is_contract_call", "tx_type", "is_self_tx", "is_early_block",  "s_age_days", "s_time_since_last", "s_time_since_send", "s_nonce", "s_fail_rate", "s_io_ratio", "s_freq_std_dev", "s_contract_count", "s_session_depth", "s_is_new_session", "s_inter_arrival_ratio", "s_lifetime_erc20", "token_value_log", "input_entropy", "s_total_interactions_log"]
@@ -9,8 +9,9 @@ split_ratios:
 seq_length: 64
 stride_by_split:
 - 1
-subsequence_start_mode: distribute
+subsequence_start_mode: exact
 max_rows: null
 
 continue_preprocessing: false
 n_cores: 1
+metadata_config_path: configs/metadata_configs/eth-sequences-filtered.json
