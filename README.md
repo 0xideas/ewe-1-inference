@@ -11,9 +11,10 @@ By analyzing a look-back window of 64 transactions across 31 contextual, behavio
 ## Getting Started 🐥
 
 ### Prerequisites
-1. Ensure you have Python installed with `sequifier>=1.1.1.3` installed (run `pip install sequifier` if not).
-2. Place the pre-trained EWE-1 ONNX model file into a `models/` directory at the project root (e.g., `models/ewe1-slim-small.onnx`). [*Models are available via huggingface.*](https://huggingface.co/sistemalabs)
-3. Place your raw transaction history files in a `data/` directory. Each file must be a `.parquet` file named after the target wallet address (e.g., `data/0x123...abc.parquet`).
+1. Clone this repository
+2. Ensure you have Python installed with `sequifier>=1.1.1.3` installed (run `pip install sequifier` if not).
+3. Place the pre-trained EWE-1 ONNX model file into a `models/` directory at the project root (e.g., `models/ewe1-slim-small.onnx`). [*Models are available via huggingface.*](https://huggingface.co/sistemalabs)
+4. Place your raw transaction history files in a `data/` directory. Each file must be a `.parquet` file named after the target wallet address (e.g., `data/0x123...abc.parquet`).
 
 ### Running Inference
 
