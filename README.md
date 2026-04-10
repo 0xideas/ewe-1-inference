@@ -40,7 +40,7 @@ The EWE-1 family includes three model sizes.
 
 *Note: All models share a window size of 64 and 16 attention heads. They were trained on 1.1 billion transaction records from 2024 and 2025.*
 
-## Input Data
+## Input Data 💽
 
 The full transaction history for each user that you want to create embeddings for should be stored in chronological ascending order in a parquet file names `[USER_ADDRESS].parquet` and put in the data folder. Each user should be in a separate parquet file.
 
@@ -52,7 +52,8 @@ The transaction history of a given user should look like this:
 | **1** | 2025-12-30 21:56:11 | 142 | 0x5babe600b9fcd5fb7b66c0611bf4896d967b23a1 | 0xe0803fc64311e530dc1bac8dd1b20cef881f6cc5 | 630126 | 0x | 23520 | 21000 | 45373308 | 1 | None | 2 |
 | ... | ... | ... | ... | ... | ... | ... | ... | ... | ... | ... | ... | ... |
 
-### Pipeline Internals
+### Pipeline Internals 🔎
+
 When you run the script, the following sequence occurs automatically:
 1. **Feature Extraction:** Reads raw transaction parquets from `data/` and applies the 31-feature extraction logic.
 2. **Aggregation:** Concatenates all processed wallets into a temporary file (`temp-data/eth-sequences-filtered.parquet`).
