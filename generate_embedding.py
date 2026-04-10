@@ -20,10 +20,11 @@ if __name__ == "__main__":
     else:
         LAST_N = None
 
-    
     shutil.rmtree("temp-data", ignore_errors=True)
     shutil.rmtree("outputs", ignore_errors=True)
-
+    shutil.rmtree("data/temp", ignore_errors=True)
+    if os.path.exists("data/eth-sequences-filtered-split0.parquet"):
+        os.remove("data/eth-sequences-filtered-split0.parquet")
 
     dfs = []
     sequence_id_to_file = {}
