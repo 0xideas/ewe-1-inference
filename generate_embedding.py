@@ -20,6 +20,11 @@ if __name__ == "__main__":
     else:
         LAST_N = None
 
+    
+    shutil.rmtree("temp-data", ignore_errors=True)
+    shutil.rmtree("outputs", ignore_errors=True)
+
+
     dfs = []
     sequence_id_to_file = {}
     for root, dirs, files in os.walk("data"):
