@@ -33,7 +33,7 @@ The second, optional argument `N_LAST` specifies the number sequence values that
 The EWE-1 family includes three model sizes.
 
 | Model | Embedding Dimension | Attention Layers | Link |
-| :--- | :--- | :--- |
+| :--- | :--- | :--- | :--- |
 | **EWE-1-slim-small** | 384 | 12 | [huggingface model card](https://huggingface.co/sistemalabs/EWE-1-slim-small) |
 | **EWE-1-slim-medium** | 768 | 16 | [huggingface model card](https://huggingface.co/sistemalabs/EWE-1-slim-medium) |
 | **EWE-1-slim-large** | 1536 | 24 | [huggingface model card](https://huggingface.co/sistemalabs/EWE-1-slim-large) |
