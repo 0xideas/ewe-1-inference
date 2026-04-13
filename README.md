@@ -32,11 +32,11 @@ The second, optional argument `N_LAST` specifies the number sequence values that
 
 The EWE-1 family includes three model sizes.
 
-| Model | Embedding Dimension | Attention Layers |
-| :--- | :--- | :--- |
-| **EWE-1-slim-small** | 384 | 12 |
-| **EWE-1-slim-medium** | 768 | 16 |
-| **EWE-1-slim-large** | 1536 | 24 |
+| Model | Embedding Dimension | Attention Layers | Link |
+| :--- | :--- | :--- | :--- |
+| **EWE-1-slim-small** | 384 | 12 | [link](https://huggingface.co/sistemalabs/EWE-1-slim-small) |
+| **EWE-1-slim-medium** | 768 | 16 | [link](https://huggingface.co/sistemalabs/EWE-1-slim-medium) |
+| **EWE-1-slim-large** | 1536 | 24 | [link](https://huggingface.co/sistemalabs/EWE-1-slim-large) |
 
 *Note: All models share a window size of 64 and 16 attention heads. They were trained on 1.1 billion transaction records from 2024 and 2025.*
 
